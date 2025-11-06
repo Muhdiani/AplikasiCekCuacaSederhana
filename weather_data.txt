@@ -1,0 +1,2 @@
+Kota,Suhu (°C),Deskripsi,Kelembaban (%)
+Jakarta,28.3,scattered clouds,62
