@@ -16,11 +16,15 @@ import java.util.ArrayList;
 import java.util.List;
 import javax.swing.ImageIcon; // For displaying images
 import java.awt.Image; // For scaling images
+import java.util.Map;
+import java.util.HashMap;
 
 public class CekCuacaFrame extends javax.swing.JFrame {
 
     private DefaultTableModel tableModel;
     private List<String> favoriteCities;
+    
+    private Map<String, Integer> searchCounts;
     
     private final WeatherAPIClient apiClient = new WeatherAPIClient();
     
@@ -29,12 +33,7 @@ public class CekCuacaFrame extends javax.swing.JFrame {
         initializeTable(); // New method to set up the table model
         initializeFavorites(); // New method to set up favorite cities
         
-        jButtonFavorit.setText("TAMBAH KE FAVORIT");
-        jButtonFavorit.addActionListener(new java.awt.event.ActionListener() {
-        public void actionPerformed(java.awt.event.ActionEvent evt) {
-        jButtonFavoritActionPerformed(evt); // We will implement this
-    }
-        });
+        searchCounts = new HashMap<>();
     }
     
     private void initializeTable() {
@@ -126,6 +125,14 @@ private void updateWeatherImage(String iconCode) {
         e.printStackTrace();
     }
 }  
+    private void addCityToFavorites(String city) {
+    // Cek lagi untuk berjaga-jaga
+    if (!favoriteCities.contains(city)) {
+        favoriteCities.add(city);
+        // Selalu update JComboBox model
+        jComboBoxFavorit.setModel(new DefaultComboBoxModel<>(favoriteCities.toArray(new String[0])));
+    }
+}
     
     
     
@@ -150,7 +157,6 @@ private void updateWeatherImage(String iconCode) {
         jLabel2 = new javax.swing.JLabel();
         jLabel3 = new javax.swing.JLabel();
         jLabelCuaca = new javax.swing.JLabel();
-        jButtonFavorit = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -200,13 +206,6 @@ private void updateWeatherImage(String iconCode) {
 
         jLabel3.setText("FAVORIT");
 
-        jButtonFavorit.setText("TAMBAH KE FAVORIT");
-        jButtonFavorit.addActionListener(new java.awt.event.ActionListener() {
-            public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButtonFavoritActionPerformed(evt);
-            }
-        });
-
         javax.swing.GroupLayout jPanel1Layout = new javax.swing.GroupLayout(jPanel1);
         jPanel1.setLayout(jPanel1Layout);
         jPanel1Layout.setHorizontalGroup(
@@ -226,21 +225,15 @@ private void updateWeatherImage(String iconCode) {
                         .addComponent(jLabel1)
                         .addGap(170, 170, 170))))
             .addGroup(jPanel1Layout.createSequentialGroup()
+                .addGap(28, 28, 28)
                 .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addGap(18, 18, 18)
-                        .addComponent(jButtonCekCuaca)
-                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                        .addComponent(jButtonFavorit))
-                    .addGroup(jPanel1Layout.createSequentialGroup()
-                        .addGap(28, 28, 28)
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jLabel2)
-                            .addComponent(jLabel3))
-                        .addGap(18, 18, 18)
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                            .addComponent(jTextFieldCariKota, javax.swing.GroupLayout.PREFERRED_SIZE, 135, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addComponent(jComboBoxFavorit, javax.swing.GroupLayout.PREFERRED_SIZE, 135, javax.swing.GroupLayout.PREFERRED_SIZE))))
+                    .addComponent(jLabel2)
+                    .addComponent(jLabel3))
+                .addGap(18, 18, 18)
+                .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jTextFieldCariKota, javax.swing.GroupLayout.PREFERRED_SIZE, 135, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jComboBoxFavorit, javax.swing.GroupLayout.PREFERRED_SIZE, 135, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jButtonCekCuaca))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                 .addComponent(jLabelCuaca, javax.swing.GroupLayout.PREFERRED_SIZE, 150, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addGap(20, 20, 20))
@@ -261,9 +254,7 @@ private void updateWeatherImage(String iconCode) {
                             .addComponent(jLabel3)
                             .addComponent(jComboBoxFavorit, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, 25, Short.MAX_VALUE)
-                        .addGroup(jPanel1Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
-                            .addComponent(jButtonCekCuaca)
-                            .addComponent(jButtonFavorit)))
+                        .addComponent(jButtonCekCuaca))
                     .addGroup(jPanel1Layout.createSequentialGroup()
                         .addGap(44, 44, 44)
                         .addComponent(jLabelCuaca, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
@@ -297,11 +288,26 @@ private void updateWeatherImage(String iconCode) {
 
     private void jButtonCekCuacaActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonCekCuacaActionPerformed
        String city = jTextFieldCariKota.getText().trim();
-    if (!city.isEmpty()) {
+        if (city.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Silakan masukkan nama kota.", "Peringatan", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        // 1. Tambahkan Hitungan Pencarian
+        String keyCity = city.toLowerCase();
+        int currentCount = searchCounts.getOrDefault(keyCity, 0);
+        int newCount = currentCount + 1;
+        searchCounts.put(keyCity, newCount);
+        
+        // 2. Periksa apakah sudah mencapai ambang batas (3 kali)
+        if (newCount >= 3 && !favoriteCities.contains(city)) {
+            addCityToFavorites(city); 
+            JOptionPane.showMessageDialog(this, city + " otomatis ditambahkan ke Favorit (Dicari " + newCount + " kali)!", 
+                                          "Otomatis Favorit", JOptionPane.INFORMATION_MESSAGE);
+            // Opsional: searchCounts.put(keyCity, 0); // Reset hitungan jika diinginkan
+        }
+        
         fetchAndDisplayWeather(city);
-    } else {
-        JOptionPane.showMessageDialog(this, "Silakan masukkan nama kota.", "Peringatan", JOptionPane.WARNING_MESSAGE);
-    }
     }//GEN-LAST:event_jButtonCekCuacaActionPerformed
 
     private void jButtonExportActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonExportActionPerformed
@@ -420,22 +426,6 @@ private void updateWeatherImage(String iconCode) {
     }
     }//GEN-LAST:event_jComboBoxFavoritItemStateChanged
 
-    private void jButtonFavoritActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButtonFavoritActionPerformed
-        String city = jTextFieldCariKota.getText().trim();
-    if (!city.isEmpty()) {
-        if (!favoriteCities.contains(city)) {
-            favoriteCities.add(city);
-            // Update the JComboBox model
-            jComboBoxFavorit.setModel(new DefaultComboBoxModel<>(favoriteCities.toArray(new String[0])));
-            JOptionPane.showMessageDialog(this, city + " telah ditambahkan ke Favorit!", "Sukses", JOptionPane.INFORMATION_MESSAGE);
-        } else {
-            JOptionPane.showMessageDialog(this, city + " sudah ada di daftar Favorit.", "Informasi", JOptionPane.WARNING_MESSAGE);
-        }
-    } else {
-        JOptionPane.showMessageDialog(this, "Silakan masukkan nama kota terlebih dahulu.", "Peringatan", JOptionPane.WARNING_MESSAGE);
-    }
-    }//GEN-LAST:event_jButtonFavoritActionPerformed
-
     /**
      * @param args the command line arguments
      */
@@ -474,7 +464,6 @@ private void updateWeatherImage(String iconCode) {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton jButtonCekCuaca;
     private javax.swing.JButton jButtonExport;
-    private javax.swing.JButton jButtonFavorit;
     private javax.swing.JButton jButtonImport;
     private javax.swing.JComboBox<String> jComboBoxFavorit;
     private javax.swing.JLabel jLabel1;
